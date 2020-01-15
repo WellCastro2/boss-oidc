@@ -174,7 +174,7 @@ if __name__ == '__main__':
         description='Django Authentication OpenID Connect plugin for the Boss SSO',
         long_description=read('README.md'),
         install_requires = [
-            'django<2.0',
+            'django>2.0',
             'djangorestframework',
             'oic==0.13.0', # Pinned due to issues with the library
             'pyjwkest>=1.0.0',
@@ -185,8 +185,8 @@ if __name__ == '__main__':
         # Depdency Links are deprecated but full support for PEP 508 isn't expected
         # until version 10. Commented links in install_requires are the PEP 508 format
         dependency_links = [
-            'git+http://github.com/jhuapl-boss/django-oidc.git#egg=django-oidc',
-            'git+http://github.com/jhuapl-boss/drf-oidc-auth.git#egg=drf-oidc-auth',
+            'git+http://github.com/WellCastro2/django-oidc.git#egg=django-oidc',
+            'git+http://github.com/WellCastro2/drf-oidc-auth.git#egg=drf-oidc-auth',
         ],
         tests_require = [
             'coverage',
