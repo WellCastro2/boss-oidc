@@ -31,6 +31,7 @@ class KeycloakInline(admin.StackedInline):
 # Define a new User admin
 class UserAdmin(BaseUserAdmin):
     inlines = (KeycloakInline,)
+    list_display = ('username','email', 'domain','bcos_id', 'is_staff', 'is_active',)
 
 
 # Re-register UserAdmin
