@@ -81,6 +81,91 @@ def check_username(username):
         raise AuthenticationFailed(_('Username is too long for Django'))
 
 
+# def get_user_by_id(request, userinfo):
+#     """Get or create the user object based on the user's information
+
+#     Note: Taken from djangooidc.backends.OpenIdConnectBackend and made common for
+#     drf-oidc-auth to make use of the same create user functionality
+
+#     Note: The user's token is loaded from the request session or header to load_user_roles
+#     the user's Keycloak roles
+
+#     Args:
+#         request (Request): Django request from the user
+#         userinfo (dict): Dictionary of userinfo requested from Keycloak with the
+#                          user's profile data
+
+#     Returns:
+#         UserModel: user object for the requesting user
+#         None: If the requesting user's token's audience is not valid
+
+#     Raises:
+#         AuthenticationFailed: If the requesting user's username is too long
+#     """
+
+#     access_token = get_access_token(request)
+#     audience = get_token_audience(access_token)
+# #     if not token_audience_is_valid(audience):
+# #         return None
+
+#     UserModel = get_user_model()
+#     uid = userinfo['sub']
+#     username = userinfo['preferred_username']
+
+#     check_username(username)
+
+#     # Some OP may actually choose to withhold some information, so we must test if it is present
+#     openid_data = {'last_login': datetime.datetime.now()}
+#     if 'first_name' in userinfo.keys():
+#         openid_data['first_name'] = userinfo['first_name']
+#     if 'given_name' in userinfo.keys():
+#         openid_data['first_name'] = userinfo['given_name']
+#     if 'christian_name' in userinfo.keys():
+#         openid_data['first_name'] = userinfo['christian_name']
+#     if 'family_name' in userinfo.keys():
+#         openid_data['last_name'] = userinfo['family_name']
+#     if 'last_name' in userinfo.keys():
+#         openid_data['last_name'] = userinfo['last_name']
+#     if 'email' in userinfo.keys():
+#         openid_data['email'] = userinfo['email']
+
+#     # DP NOTE: The thing that we are trying to prevent is the user account being
+#     #          deleted and recreated in Keycloak (all user data the same, but a
+#     #          different uid) and getting the application permissions of the old
+#     #          user account.
+
+#     try: # try to lookup by keycloak UID first
+#         kc_user = KeycloakModel.objects.get(UID = uid)
+#         user = kc_user.user
+#     except KeycloakModel.DoesNotExist: # user doesn't exist with a keycloak UID
+#         try:
+#             user = UserModel.objects.get_by_natural_key(username)
+
+#             fmt = "Deleting user '{}' becuase it matches the authenticated Keycloak username"
+#             _log('get_user_by_id').info(fmt.format(username))
+
+#             # remove existing user account, so permissions are not transfered
+#             # DP NOTE: required, as the username field is still a unique field,
+#             #          which doesn't allow multiple users in the table with the
+#             #          same username
+#             user.delete()
+#         except UserModel.DoesNotExist:
+#             pass
+
+#         args = {UserModel.USERNAME_FIELD: username, 'defaults': openid_data, }
+#         user, created = UserModel.objects.update_or_create(**args)
+#         kc_user = KeycloakModel.objects.create(user = user, UID = uid)
+
+#     roles = get_roles(access_token)
+#     user.is_staff = 'admin' in roles or 'superuser' in roles
+#     user.is_superuser = 'superuser' in roles
+
+#     LOAD_USER_ROLES_FUNCTION(user, roles)
+#     UPDATE_USER_DATA_FUNCTION(user, userinfo)
+
+#     user.save()
+#     return user
+
 def get_user_by_id(request, userinfo):
     """Get or create the user object based on the user's information
 
@@ -139,31 +224,18 @@ def get_user_by_id(request, userinfo):
         user = kc_user.user
     except KeycloakModel.DoesNotExist: # user doesn't exist with a keycloak UID
         try:
-            user = UserModel.objects.get_by_natural_key(username)
-
-            fmt = "Deleting user '{}' becuase it matches the authenticated Keycloak username"
-            _log('get_user_by_id').info(fmt.format(username))
-
-            # remove existing user account, so permissions are not transfered
-            # DP NOTE: required, as the username field is still a unique field,
-            #          which doesn't allow multiple users in the table with the
-            #          same username
-            user.delete()
+            user = UserModel.objects.filter(email=userinfo['email']).first()
+            KeycloakModel.objects.create(user = user, UID = uid)
         except UserModel.DoesNotExist:
             pass
 
-        args = {UserModel.USERNAME_FIELD: username, 'defaults': openid_data, }
-        user, created = UserModel.objects.update_or_create(**args)
-        kc_user = KeycloakModel.objects.create(user = user, UID = uid)
+    # roles = get_roles(access_token)
+    # user.is_staff = 'admin' in roles or 'superuser' in roles
+    # user.is_superuser = 'superuser' in roles
 
-    roles = get_roles(access_token)
-    user.is_staff = 'admin' in roles or 'superuser' in roles
-    user.is_superuser = 'superuser' in roles
-
-    LOAD_USER_ROLES_FUNCTION(user, roles)
+    # LOAD_USER_ROLES_FUNCTION(user, roles)
     UPDATE_USER_DATA_FUNCTION(user, userinfo)
 
-    user.save()
     return user
 
 
